@@ -1,0 +1,3 @@
+from __future__ import absolute_import
+
+from .kitti_squeezeDetPlus_config import kitti_squeezeDetPlus_config
