@@ -10,21 +10,22 @@ import tensorflow as tf
 
 from config import *
 from nets import *
-from dataset import kitti
-
+import pdb
 
 class remove_rows_columns(object):
     def __init__(self, threshold,
-                 PRETRAINED_MODEL_PATH = '/path/to/parameters/SqueezeDetPlus/SqueezeDetPlus.pkl', #Used to derive structure of network
-                 checkpoint_dir = '/path/to/ckpt/checkpoints/pruning/model.ckpt-2400'): #CKPT can replace paramters with the retrained parameters
+                 PRETRAINED_MODEL_PATH = '/path/to/weights/SqueezeDetPlus.pkl', #Used to derive structure of network
+                 checkpoint_dir = 'path/to/pruning/ckpt/model.ckpt-200' #CKPT can replace paramters with the retrained parameters'
+                 ):
 
 
         #  Create network
         self.mc = kitti_squeezeDetPlus_config()
         self.mc.LOAD_PRETRAINED_MODEL = True
         self.mc.PRETRAINED_MODEL_PATH = PRETRAINED_MODEL_PATH
-        self.mc.BATCH_SIZE = 1
+        self.mc.BATCH_SIZE = 10
         self.mc.IS_PRUNING = True
+        self.mc.LITE_MODE = False
         self.model = SqueezeDetPlusPruneFilterShape(self.mc)
 
         self.checkpoint_dir = checkpoint_dir
@@ -68,6 +69,7 @@ class remove_rows_columns(object):
             if 'gamma_row:0' in var.name:
                 mask_row = sess.run(var)
                 if min(abs(mask_row[0,0]), abs(mask_row[-1,-1])) < threshold:
+                    print(var.name)
                     if abs(mask_row[0,0]) < abs(mask_row[-1,-1]):
                         remove_row = 0
                     else:
@@ -78,6 +80,7 @@ class remove_rows_columns(object):
             if 'gamma_col:0' in var.name:
                 mask_col = sess.run(var)
                 if min(abs(mask_col[0,0]), abs(mask_col[-1,-1])) < threshold:
+                    print(var.name)
                     if abs(mask_col[0,0]) < abs(mask_col[-1,-1]):
                         remove_col = 0
                     else:
@@ -89,13 +92,15 @@ class remove_rows_columns(object):
                 kernel = sess.run(var)
                 kernel_pruned = kernel
                 if 'conv1/kernels:0' in var.name or 'expand3x3/kernels:0' in var.name:
-                    mask_col = sess.run(weights[var_i+3])
-                    mask_row = sess.run(weights[var_i+2])
+
+                    mask_col = sess.run(weights[var_i-3])
+                    mask_row = sess.run(weights[var_i-4])
                     # Load slicer variable if layer has had rows or cols removed before
                     if var.name[:-10] + '_slicer' in weights_dic_old.keys():
                         slicer = weights_dic_old[var.name[:-10] + '_slicer']
                     else:
                         slicer = [[0,0],[0,0]]
+
 
                     #Multiply kernel with row factros
                     kernel_pruned = np.transpose(np.matmul(np.expand_dims(
@@ -108,6 +113,7 @@ class remove_rows_columns(object):
 
                     #If row needs to be removed, remove and store offset in slicer
                     if remove_row != None:
+                        print('Removing row')
                         self.dic_rows_pruned[var.name[:-10]] = 1
                         mask_row[remove_row][remove_row] = 0
                         kernel_pruned = np.delete(kernel_pruned, remove_row, 1)
@@ -121,6 +127,7 @@ class remove_rows_columns(object):
 
                     #If col needs to be removed, remove and store offset in slicer
                     if remove_col != None:
+                        print('Removing col')
                         mask_col[remove_col][remove_col] = 0
                         self.dic_cols_pruned[var.name[:-10]] = 1
                         kernel_pruned = np.delete(kernel_pruned, remove_col, 0)
@@ -154,7 +161,7 @@ class remove_rows_columns(object):
                 dic[var.name[:-9]] = entry
                 entry = []
 
-        joblib.dump(dic,'SqueezeDetPruned1.pkl',compress=False )
+        joblib.dump(dic,'SqueezeDetPrunedFilterShape.pkl',compress=False )
 
     def restore_checkpoint(self, sess):
         saver = tf.train.Saver(self.model.model_params)

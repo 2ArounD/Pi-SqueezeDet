@@ -15,8 +15,9 @@ from nets import *
 
 class l1_model_pruner(object):
     def __init__(self, threshold,
-                 PRETRAINED_MODEL_PATH = '/path/to/parameters/SqueezeDetPlus/SqueezeDetPlus.pkl', #Used to derive structure of network
-                 checkpoint_dir = '/path/to/ckpt/checkpoints/pruning/model.ckpt-2400'): #CKPT can replace paramters with the retrained parameters
+                 PRETRAINED_MODEL_PATH = '/path/to/weights/SqueezeDetPlus.pkl', #Used to derive structure of network
+                 checkpoint_dir = 'path/to/pruning/ckpt/model.ckpt-200' #CKPT can replace paramters with the retrained parameters'
+                 ):
 
 
         # Create network
@@ -25,6 +26,7 @@ class l1_model_pruner(object):
         self.mc.PRETRAINED_MODEL_PATH = PRETRAINED_MODEL_PATH
         self.mc.BATCH_SIZE = 10
         self.mc.IS_PRUNING = True
+        self.mc.LITE_MODE = False
         self.model = SqueezeDetPlusPruneLayer(self.mc)
 
         self.checkpoint_dir = checkpoint_dir
@@ -64,13 +66,14 @@ class l1_model_pruner(object):
                 self.lay_gammas = np.append(self.lay_gammas, lay_gamma)
                 if lay_gamma < threshold:
                     self.dic_layers_pruned[var.name[:-13]] = True
-                    remove_layer = True
                     if 'expand3x3' in var.name:
                         print('prune 3x3!')
                         cut_squeeze1 = True
+                        remove_layer = True
                     elif 'expand1x1' in var.name:
                         print('prune 1x1!')
                         cut_squeeze2 = True
+                        remove_layer = True
                     else:
                         print('no cutting error')
                         pdb.set_trace()
@@ -108,6 +111,9 @@ class l1_model_pruner(object):
 
             if 'biases:0' in var.name:
                 biases = sess.run(var)
+                print('remove layer' + str(remove_layer))
+                print(var.name)
+                print('')
                 if not remove_layer:
                     # Store all variables in dictionary
                     entry = [kernel_pruned, biases]
@@ -115,7 +121,8 @@ class l1_model_pruner(object):
                 remove_layer = False
                 entry = []
 
-        joblib.dump(dic,'SqueezeDetPruned1.pkl',compress=False )
+
+        joblib.dump(dic,'SqueezeDetPrunedLayers.pkl',compress=False )
 
     # Restore checkpoint
     def restore_checkpoint(self, sess):

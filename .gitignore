@@ -1,0 +1,8 @@
+
+# Directories and files to ignore when uploading code to floyd
+
+floyd.yml
+floyd_requirements.txt
+.floydexpt
+.floydignore
+*pyc

@@ -1,4 +1,5 @@
-# Author: Bichen Wu (bichen@berkeley.edu) 08/25/2016
+# Original author: Bichen Wu (bichen@berkeley.edu) 08/25/2016
+# Adapted by: A.Y.A. Jonker (arnoudjonker@gmail.com) 06/03/2020
 
 """SqueezeDet+ model."""
 
@@ -6,13 +7,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
-import sys
-
 import joblib
-from utils import util
-from easydict import EasyDict as edict
-import numpy as np
 import tensorflow as tf
 from nn_skeleton import ModelSkeleton
 

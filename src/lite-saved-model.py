@@ -1,11 +1,11 @@
 import os
 import tensorflow as tf
 from config import kitti_squeezeDetPlus_config
-from nets import SqueezeDetPlusBNEval
+from nets import SqueezeDetPlusPruneLayer, SqueezeDetPlusPruneFilter, SqueezeDetPlusPruneFilterShape
 
 
-weights_path = '/path/to/weights/SqueezeDetFull2.pkl'
-export_dir = os.path.join('/path/to/export_dir', '0')
+weights_path = '/path/to/weights/SqueezeDetPrunedFilterShape.pkl' # This is used to create smaller graph as well
+export_dir = os.path.join('/path/to/desired/export_dir/export_dir', '0')
 print(export_dir)
 
 
@@ -14,8 +14,10 @@ with tf.compat.v1.Session(graph=graph, config=tf.ConfigProto(allow_soft_placemen
     mc = kitti_squeezeDetPlus_config()
     mc.IS_TRAINING = False
     mc.BATCH_SIZE = 1
+    mc.LITE_MODE = True
+    mc.IS_PRUNING = False
     mc.PRETRAINED_MODEL_PATH = weights_path
-    model = SqueezeDetPlusBNEval(mc)
+    model = SqueezeDetPlusPruneFilter(mc)  #Set this to the corresponding pruned structures of the model
 
     uninitialized_vars = []
     for var in tf.all_variables():
@@ -39,7 +41,7 @@ with tf.compat.v1.Session(graph=graph, config=tf.ConfigProto(allow_soft_placemen
                                      'conf': output_tensor_conf_info},
                             method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME)
 
-    # Export checkpoint to SavedModel
+    # Export graph to SavedModel
     builder = tf.saved_model.builder.SavedModelBuilder(export_dir)
     builder.add_meta_graph_and_variables(sess,
                                          [tf.saved_model.tag_constants.SERVING],

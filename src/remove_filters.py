@@ -15,8 +15,9 @@ threshold = 0.1
 
 class remove_filters(object):
     def __init__(self, threshold,
-                PRETRAINED_MODEL_PATH = '/path/to/parameters/SqueezeDetPlus/SqueezeDetPlus.pkl', #Used to derive structure of network
-                checkpoint_dir = '/path/to/ckpt/checkpoints/pruning/model.ckpt-2400'): #CKPT can replace paramters with the retrained parameters
+                 PRETRAINED_MODEL_PATH = '/path/to/weights/SqueezeDetPlus.pkl', #Used to derive structure of network
+                 checkpoint_dir = 'path/to/pruning/ckpt/model.ckpt-200' #CKPT can replace paramters with the retrained parameters'
+                 ):
 
         # create model
         self.mc = kitti_squeezeDetPlus_config()
@@ -24,6 +25,7 @@ class remove_filters(object):
         self.mc.PRETRAINED_MODEL_PATH = PRETRAINED_MODEL_PATH
         self.mc.BATCH_SIZE = 1
         self.mc.IS_PRUNING = True
+        self.mc.LITE_MODE = False
         self.model = SqueezeDetPlusPruneFilter(self.mc)
 
         self.checkpoint_dir = checkpoint_dir
@@ -104,7 +106,7 @@ class remove_filters(object):
                 gammas_pruned = gammas[gammas!=0]
                 dic[var.name[:-8] + '_gamma'] = gammas_pruned
 
-        joblib.dump(dic,'SqueezeDetPruned1.pkl',compress=False )
+        joblib.dump(dic,'SqueezeDetPrunedFilters.pkl',compress=False )
 
     # Function to loop through gammas and set zeros in the network
     def set_zeros(self, sess):
@@ -132,6 +134,9 @@ class remove_filters(object):
 
             pruned_channels = pruned_channels + len(mask[0])
             total_channels = total_channels + len(gam_values)
+
+        print('total_channels: ' + str(total_channels))
+        print('channels pruned: ' + str(pruned_channels))
 
     # Function to set zeros in first conv layer and connected channels
     def set_zeros_conv1(self, sess, mask, gamma_idx):

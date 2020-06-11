@@ -1,7 +1,7 @@
 export TRAIN_DIR="/output"
 export CHECK_PATH="/"
 export PRETRAINED_MODEL_PATH="/floyd/input/pre-models/SqueezeDetPlus/SqueezeDetPlus.pkl"
-export NET="squeezeDet+PruneLayer"
+export NET="squeezeDet+PruneFilterShape"
 
 floyd run \
 --data 2around/datasets/kitti/:dataset \
@@ -9,7 +9,7 @@ floyd run \
 --env tensorflow-1.14 \
 --gpu \
 --max-runtime 600 \
- "python3 ./combined/src/train.py \
+ "python3 ./src/train.py \
   --pretrained_model_path=$PRETRAINED_MODEL_PATH \
   --data_path=/floyd/input/dataset \
   --image_set=train \

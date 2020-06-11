@@ -1,4 +1,5 @@
-# Author: Bichen Wu (bichen@berkeley.edu) 08/25/2016
+# Original author: Bichen Wu (bichen@berkeley.edu) 08/25/2016
+# Adapted by: A.Y.A. Jonker (arnoudjonker@gmail.com) 06/03/2020
 
 """Train"""
 
@@ -25,17 +26,17 @@ from nets import SqueezeDetPlusPruneFilterShape, SqueezeDetPlusPruneLayer
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('data_path', './data/KITTI', """Root directory of data""")
+tf.app.flags.DEFINE_string('data_path', '/home/arnoud/Documents/TU/Afstuderen/Code/squeezeDet/data/KITTI', """Root directory of data""")
 tf.app.flags.DEFINE_string('image_set', 'train',
                            """ Can be train, trainval, val, or test""")
-tf.app.flags.DEFINE_string('train_dir', './data/local_train',
+tf.app.flags.DEFINE_string('train_dir', '../local_train',
                             """Directory where to write event logs """
                             """and checkpoint.""")
 tf.app.flags.DEFINE_integer('max_steps', 1000000,
                             """Maximum number of batches to run.""")
-tf.app.flags.DEFINE_string('net', 'squeezeDet+PruneFilter',
+tf.app.flags.DEFINE_string('net', 'squeezeDet+PruneLayer',
                            """Neural net architecture. """)
-tf.app.flags.DEFINE_string('pretrained_model_path', '/path/to/pre-trained-parameters/SqueezeDetPlus/SqueezeDetPlus.pkl',
+tf.app.flags.DEFINE_string('pretrained_model_path', '/home/arnoud/Documents/TU/Afstuderen/Code/github/pruned_weights/layer/SqueezeDetPrunedLayers.pkl',
                            """Path to the pretrained paramters, pkl file, used for pruned models to derive structure.""")
 tf.app.flags.DEFINE_integer('summary_step', 10,
                             """Number of steps to save summary.""")
@@ -67,6 +68,7 @@ def train():
         mc.LEARNING_RATE = 0.1
         mc.IS_TRAINING = True
         mc.IS_PRUNING = True
+        mc.LITE_MODE = False
         mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
         model = SqueezeDetPlusPruneFilter(mc)
       elif FLAGS.net == 'squeezeDet+PruneFilterShape':
@@ -74,6 +76,7 @@ def train():
         mc.LEARNING_RATE = 0.001
         mc.IS_TRAINING = True
         mc.IS_PRUNING = True
+        mc.LITE_MODE = False
         mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
         model = SqueezeDetPlusPruneFilterShape(mc)
       elif FLAGS.net == 'squeezeDet+PruneLayer':
@@ -81,6 +84,7 @@ def train():
         mc.LEARNING_RATE = 0.0003
         mc.IS_TRAINING = True
         mc.IS_PRUNING = True
+        mc.LITE_MODE = False
         mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
         model = SqueezeDetPlusPruneLayer(mc)
     else:
@@ -88,22 +92,26 @@ def train():
         mc = kitti_squeezeDetPlus_config()
         mc.IS_TRAINING = True
         mc.IS_PRUNING = False
+        mc.LITE_MODE = False
         mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
         model = SqueezeDetPlusPruneFilter(mc)
       elif FLAGS.net == 'squeezeDet+PruneFilterShape':
         mc = kitti_squeezeDetPlus_config()
         mc.IS_TRAINING = True
         mc.IS_PRUNING = False
+        mc.LITE_MODE = False
         mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
         model = SqueezeDetPlusPruneFilterShape(mc)
       elif FLAGS.net == 'squeezeDet+PruneLayer':
         mc = kitti_squeezeDetPlus_config()
         mc.IS_TRAINING = True
         mc.IS_PRUNING = False
+        mc.LITE_MODE = False
         mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
         model = SqueezeDetPlusPruneLayer(mc)
 
     imdb = kitti(FLAGS.image_set, FLAGS.data_path, mc)
+
 
     # save model size, flops, activations by layers
     with open(os.path.join(FLAGS.train_dir, 'model_metrics.txt'), 'w') as f:

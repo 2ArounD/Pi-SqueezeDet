@@ -17,9 +17,10 @@ class SqueezeDetPlusPruneFilterShape(ModelSkeleton):
 
       self._add_forward_graph()
       self._add_interpretation_graph()
-      self._add_loss_graph()
-      self._add_train_graph()
-      self._add_viz_graph()
+      if not self.mc.LITE_MODE:
+        self._add_loss_graph()
+        self._add_train_graph()
+        self._add_viz_graph()
 
   def _add_forward_graph(self):
     """NN architecture."""
@@ -66,14 +67,21 @@ class SqueezeDetPlusPruneFilterShape(ModelSkeleton):
         'fire10', fire9, s1x1=384, e1x1=256, e3x3=256, pruning=mc.IS_PRUNING)
     fire11 = self._fire_layer(
         'fire11', fire10, s1x1=384, e1x1=256, e3x3=256, pruning=mc.IS_PRUNING)
-    dropout11 = tf.nn.dropout(fire11, self.keep_prob, name='drop11')
 
-    num_output = mc.ANCHOR_PER_GRID * (mc.CLASSES + 1 + 4)
-    self.preds = self._conv_layer(dropout11,
-        'conv12',
-        filters=num_output, size=3, stride=1,
-        padding='SAME', relu=False, stddev=0.0001,
-        pruning=False)
+    if not self.mc.LITE_MODE:
+      dropout11 = tf.nn.dropout(fire11, self.keep_prob, name='drop11')
+      num_output = mc.ANCHOR_PER_GRID * (mc.CLASSES + 1 + 4)
+      self.preds = self._conv_layer(dropout11,
+          'conv12',
+          filters=num_output, size=3, stride=1,
+          padding='SAME', relu=False, stddev=0.0001, pruning=False)
+
+    if self.mc.LITE_MODE:
+      num_output = mc.ANCHOR_PER_GRID * (mc.CLASSES + 1 + 4)
+      self.preds = self._conv_layer(fire11,
+          'conv12',
+          filters=num_output, size=3, stride=1,
+          padding='SAME', relu=False, stddev=0.0001, pruning=False)
 
 
   def _fire_layer(self, layer_name, inputs, s1x1, e1x1, e3x3, stddev=0.01,

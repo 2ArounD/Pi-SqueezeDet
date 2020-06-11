@@ -1,5 +1,5 @@
 # Original author: Bichen Wu (bichen@berkeley.edu) 08/25/2016
-# Adapted by: A.Y.A. Jonker (arnoudjonker@gmail.com) 02/11/2020
+# Adapted by: A.Y.A. Jonker (arnoudjonker@gmail.com) 06/03/2020
 
 """Neural network model base class."""
 
@@ -74,29 +74,35 @@ class ModelSkeleton:
       name='iou', dtype=tf.float32
     )
 
-    # Queue for feeding data during training and pruning
-    self.FIFOQueue = tf.FIFOQueue(
-        capacity=mc.QUEUE_CAPACITY,
-        dtypes=[tf.float32, tf.float32, tf.float32,
-                tf.float32, tf.float32],
-        shapes=[[mc.IMAGE_HEIGHT, mc.IMAGE_WIDTH, 3],
-                [mc.ANCHORS, 1],
-                [mc.ANCHORS, 4],
-                [mc.ANCHORS, 4],
-                [mc.ANCHORS, mc.CLASSES]],
-    )
+    if not self.mc.LITE_MODE:
+      # Queue for feeding data during training and pruning
+      self.FIFOQueue = tf.FIFOQueue(
+          capacity=mc.QUEUE_CAPACITY,
+          dtypes=[tf.float32, tf.float32, tf.float32,
+                  tf.float32, tf.float32],
+          shapes=[[mc.IMAGE_HEIGHT, mc.IMAGE_WIDTH, 3],
+                  [mc.ANCHORS, 1],
+                  [mc.ANCHORS, 4],
+                  [mc.ANCHORS, 4],
+                  [mc.ANCHORS, mc.CLASSES]],
+      )
 
-    # Queue operation
-    self.enqueue_op = self.FIFOQueue.enqueue_many(
-        [self.ph_image_input, self.ph_input_mask,
+      # Queue operation
+      self.enqueue_op = self.FIFOQueue.enqueue_many(
+          [self.ph_image_input, self.ph_input_mask,
+           self.ph_box_delta_input, self.ph_box_input, self.ph_labels]
+      )
+
+      #
+      self.image_input, self.input_mask, self.box_delta_input, \
+          self.box_input, self.labels = tf.train.batch(
+              self.FIFOQueue.dequeue(), batch_size=mc.BATCH_SIZE,
+              capacity=mc.QUEUE_CAPACITY)
+
+    if self.mc.LITE_MODE:
+      self.image_input, self.input_mask, self.box_delta_input, \
+        self.box_input, self.labels = [self.ph_image_input, self.ph_input_mask,
          self.ph_box_delta_input, self.ph_box_input, self.ph_labels]
-    )
-
-    #
-    self.image_input, self.input_mask, self.box_delta_input, \
-        self.box_input, self.labels = tf.train.batch(
-            self.FIFOQueue.dequeue(), batch_size=mc.BATCH_SIZE,
-            capacity=mc.QUEUE_CAPACITY)
 
     # model parameters for keeping track of parameters in model
     self.model_params = []
@@ -315,6 +321,14 @@ class ModelSkeleton:
         self.gamma_loss = tf.contrib.layers.apply_regularization(l1_regularizer, gammas)
 
         tf.add_to_collection('losses', self.gamma_loss)
+    else:
+      # with tf.variable_scope('l1_regularization') as scope:
+        #Create dummy loss of 0 when not pruning
+        dummy = _variable_on_device('dummy', [1], tf.constant_initializer(0.0),  False)
+        l1_regularizer = tf.contrib.layers.l1_regularizer(scale=0.0, scope=None)
+        self.gamma_loss = tf.contrib.layers.apply_regularization(l1_regularizer, [dummy])
+
+        tf.add_to_collection('losses', self.gamma_loss)
 
     # add above losses as well as weight decay losses to form the total loss
     self.loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
@@ -374,6 +388,40 @@ class ModelSkeleton:
     with tf.variable_scope(conv_param_name) as scope:
       channels = inputs.get_shape()[3]
 
+      # Create variables for pruning
+      if pruning and prune_struct=='filter':
+        gamma_val = tf.constant_initializer(1.0)
+        gamma_filter = _variable_on_device('gamma_filter', [filters], gamma_val,
+                                    trainable=(pruning))
+        self.model_params += [gamma_filter]
+
+      # Create variables for pruning
+      if pruning and prune_struct=='f_shape' and np.size(size)>1:
+        mask_row_val = tf.initializers.identity()
+        mask_col_val = tf.initializers.identity()
+        identity_row_val = tf.initializers.identity()
+        identity_col_val = tf.initializers.identity()
+
+        gamma_row = _variable_on_device('gamma_row', [size[1], size[1]],
+                                        mask_row_val, trainable=(pruning))
+
+        gamma_col = _variable_on_device('gamma_col', [size[0], size[0]],
+                                        mask_col_val, trainable=(pruning))
+        mask_gamma_row = _variable_on_device('id_fil_row', [size[1], size[1]],
+                                             identity_row_val, trainable=False)
+        mask_gamma_col = _variable_on_device('id_fil_col', [size[0], size[0]],
+                                             identity_col_val, trainable=False)
+        self.model_params += [gamma_row]
+        self.model_params += [gamma_col]
+
+      # Create variables for pruning
+      if pruning and prune_struct=='layer':
+        layer_gamma_val  = tf.constant_initializer(1.0)
+        layer_gamma = _variable_on_device('gamma_layer', [1], layer_gamma_val,
+                                    trainable=pruning)
+        self.model_params += [layer_gamma]
+
+      # Create kernels and biases
       if mc.LOAD_PRETRAINED_MODEL:
         cw = self.model_weights
         kernel_val = np.transpose(cw[conv_param_name][0], [2,3,1,0])
@@ -392,33 +440,15 @@ class ModelSkeleton:
 
       biases = _variable_on_device('biases', [filters], bias_init,
                                 trainable=(not pruning))
-      self.model_params += [kernel, biases]
 
+      self.model_params += [kernel, biases]
 
       # Add gammas to filters when pruning filters
       if pruning and prune_struct=='filter':
-        gamma_val = tf.constant_initializer(1.0)
-        gamma_filter = _variable_on_device('gamma_filter', [filters], gamma_val,
-                                    trainable=(pruning))
         kernel = tf.multiply(gamma_filter, kernel)
-        self.model_params += [gamma_filter]
 
       # Add gammas to filter height and width when pruning those
       if pruning and prune_struct=='f_shape' and np.size(size)>1:
-        mask_row_val = tf.initializers.identity()
-        mask_col_val = tf.initializers.identity()
-        identity_row_val = tf.initializers.identity()
-        identity_col_val = tf.initializers.identity()
-
-        gamma_row = _variable_on_device('gamma_row', [size[1], size[1]],
-                                        mask_row_val, trainable=(pruning))
-
-        gamma_col = _variable_on_device('gamma_col', [size[0], size[0]],
-                                        mask_col_val, trainable=(pruning))
-        mask_gamma_row = _variable_on_device('id_fil_row', [size[1], size[1]],
-                                             identity_row_val, trainable=False)
-        mask_gamma_col = _variable_on_device('id_fil_col', [size[0], size[0]],
-                                             identity_col_val, trainable=False)
         mask_row_filtered = tf.multiply(mask_gamma_row, gamma_row)
         mask_col_filtered = tf.multiply(mask_gamma_col, gamma_col)
         kernel = tf.transpose(tf.matmul(tf.expand_dims(tf.expand_dims(
@@ -428,8 +458,6 @@ class ModelSkeleton:
                               tf.expand_dims(tf.expand_dims(
                                 mask_col_filtered, 0), 0),
                               name = 'maskmulticol'))
-        self.model_params += [gamma_row]
-        self.model_params += [gamma_col]
 
       conv = tf.nn.conv2d(
           inputs, kernel, [1, stride, stride, 1], padding=padding,
@@ -438,11 +466,7 @@ class ModelSkeleton:
 
       # Add gamma to complete layer if pruning layers
       if pruning and prune_struct=='layer':
-        layer_gamma_val  = tf.constant_initializer(1.0)
-        layer_gamma = _variable_on_device('gamma_layer', [1], layer_gamma_val,
-                                    trainable=pruning)
         conv = tf.multiply(conv, layer_gamma)
-        self.model_params += [layer_gamma]
 
       out_shape = conv.get_shape().as_list()
 
