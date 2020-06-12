@@ -165,6 +165,8 @@ This will be enough to run the tflite model on the Raspberry Pi.
 
 ## Acceleration on GPU vs Raspberry Pi
 
+Below the acceleration results after 3 iterations of pruning and retraining are shown. Removing complete filters works better relative to a gpu. Also absolute this is the best acceleration method for network pruning for a Raspberry Pi. Combining methods or increasing the pruning and retraining iterations could decrease the inference time even more.
+
 ![alt text](https://github.com/2ArounD/Pi-SqueezeDet/blob/master/results_3_iterations.png)
 
 
