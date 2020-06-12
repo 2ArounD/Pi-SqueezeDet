@@ -26,48 +26,48 @@ Adaptations have been made on the training algorithm and network structures to e
 
 - Use pip to install required Python packages:
 
-```Shell
-pip install -r requirements.txt
-```
+    ```Shell
+    pip install -r requirements.txt
+    ```
 
 ## Data:
 
 - This repository makes use of the KITTI 2d object detection dataset, this can be downloaded from http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=2d. Place the data in the folder ROOT/data/KITTI and unzip. Then run the data split script provided by the repository from Bichen. Create the necessary directories and run the python script:
 
-```Shell
-  cd $ROOT/data/KITTI/
-  mkdir ImageSets
-  cd ./ImageSets
-  ls ../training/image_2/ | grep ".png" | sed s/.png// > trainval.txt
-  ```
-```Shell
-  cd $ROOT/data/
-  python random_split_train_val.py
-  ```
+    ```Shell
+      cd $ROOT/data/KITTI/
+      mkdir ImageSets
+      cd ./ImageSets
+      ls ../training/image_2/ | grep ".png" | sed s/.png// > trainval.txt
+      ```
+    ```Shell
+      cd $ROOT/data/
+      python random_split_train_val.py
+      ```
 
-This will result in the following folder and file structure with the KITTI data:
+    This will result in the following folder and file structure with the KITTI data:
 
-```Shell
-  $SQDT_ROOT/data/KITTI/
-                    |->training/
-                    |     |-> image_2/00****.png
-                    |     L-> label_2/00****.txt
-                    |->testing/
-                    |     L-> image_2/00****.png
-                    L->ImageSets/
-                          |-> trainval.txt
-                          |-> train.txt
-                          L-> val.txt
+    ```Shell
+      $SQDT_ROOT/data/KITTI/
+                        |->training/
+                        |     |-> image_2/00****.png
+                        |     L-> label_2/00****.txt
+                        |->testing/
+                        |     L-> image_2/00****.png
+                        L->ImageSets/
+                              |-> trainval.txt
+                              |-> train.txt
+                              L-> val.txt
   ```
 
 - The starting weights for training can be initialized with weights from the ImageNet SqueezeNet. These can be downloaded by running the following commmands:
 
-```Shell
-  cd $SQDT_ROOT/data/
-  # SqueezeNet
-  wget https://www.dropbox.com/s/fzvtkc42hu3xw47/SqueezeNet.tgz
-  tar -xzvf SqueezeNet.tgz
-  ```
+    ```Shell
+      cd $SQDT_ROOT/data/
+      # SqueezeNet
+      wget https://www.dropbox.com/s/fzvtkc42hu3xw47/SqueezeNet.tgz
+      tar -xzvf SqueezeNet.tgz
+      ```
 
 ## Training
 
@@ -75,7 +75,7 @@ Training can be started with the following command:
 
 ```Shell
 python3 ./src/train.py \
-  --pretrained_model_path=[path/to/pickle/file/with/weights] \
+  --pretrained_model_path=[path/to/file/with/weights] \
   --data_path=[path/to/data/KITTI]\
   --image_set=train \
   --train_dir=[path/to/folder/where/training/output/is/stored] \
@@ -114,6 +114,31 @@ python3 ./src/GPU_eval.py \
 
 
 ## Pruning
+
+To prune a (trained) network the training script is used again with IS_PRUNING set to true. The script is started by the following command:
+
+```Shell
+
+python3 ./src/train.py \
+  --pretrained_model_path=[path/to/file/with/weights] \
+  --data_path=[path/to/data/KITTI]\
+  --image_set=train \
+  --train_dir=[path/to/folder/where/pruning/output/is/stored] \
+  --max_steps=2000 \
+  --net=[squeezeDet+PruneFilterShape| squeezeDet+PruneFilter| squeezeDet+PruneLayer] \
+  --summary_step=100 \
+  --checkpoint_step=200 \
+  --checkpoint_dir=[/path/to/folder/containing/ckpt/file/from/training] \
+  --pruning=True
+```
+
+The pruning script traines the network with a regulizer applied to the chosen structure. The to regularize structure can be chosen with the --net parameter. The networks weights are not updated during pruning, only the regularization paramters connected to the structures. When the loss converges a new weights file can be generated with one of the following scripts, according to the pruned structure:
+
+- remove_filters.py
+- remove_layers.py
+- remove_rows_and_columns.py
+
+Running the scripts with the appropriate paths(in script), will result in a pickled dictionary with the new network structure and weights. This dictionary can be used as --pretrained_model_path in the python scripts to create a new and smaller graph in Tensorflow. When a pruned model is used, the appropriate --net should be selected as well. This will lead to smaller graphs with less paramters and actual speed-ups on your device.
 
 
 ## Testing on Raspberry Pi
