@@ -48,7 +48,7 @@ Adaptations have been made on the training algorithm and network structures to e
     This will result in the following folder and file structure with the KITTI data:
 
     ```Shell
-      $SQDT_ROOT/data/KITTI/
+      $ROOT/data/KITTI/
                         |->training/
                         |     |-> image_2/00****.png
                         |     L-> label_2/00****.txt
@@ -63,7 +63,7 @@ Adaptations have been made on the training algorithm and network structures to e
 - The starting weights for training can be initialized with weights from the ImageNet SqueezeNet. These can be downloaded by running the following commmands:
 
     ```Shell
-      cd $SQDT_ROOT/data/
+      cd $ROOT/data/
       # SqueezeNet
       wget https://www.dropbox.com/s/fzvtkc42hu3xw47/SqueezeNet.tgz
       tar -xzvf SqueezeNet.tgz
@@ -150,9 +150,9 @@ Adaptations have been made on the training algorithm and network structures to e
 
 To test the models on a Raspberry Pi, scripts to convert a trained and pruned model to the tflite format are included as well.
 
-- First run the script lite-saved-model.py with the appropiate paths in the script. This will create a tensorflow SavedModel of the network with the right inputs and outputs.
+- First run the script lite-saved-model.py with the appropriate paths in the script. This will create a tensorflow SavedModel of the network with the right inputs and outputs.
 
-- Then run the script lite-tflite-model.py with the appropiate paths in the script. This will convert the tensorflow SavedModel to a tflite model.
+- Then run the script lite-tflite-model.py with the appropriate paths in the script. This will convert the tensorflow SavedModel to a tflite model.
 
 To use a tflite model on a Raspberry Pi, the Raspberry Pi had Raspian Buster Lite as OS and had the following packages installed:
 
