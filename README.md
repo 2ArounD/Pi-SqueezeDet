@@ -19,9 +19,9 @@ Adaptations have been made on the training algorithm and network structures to e
 
 - Clone the Pi-SqueezeDet repository:
 
-  ```Shell
-  git clone https://github.com/2ArounD/Pi-SqueezeDet.git
-  ```
+    ```Shell
+    git clone https://github.com/2ArounD/Pi-SqueezeDet.git
+    ```
 
 
 - Use pip to install required Python packages:
@@ -39,11 +39,11 @@ Adaptations have been made on the training algorithm and network structures to e
       mkdir ImageSets
       cd ./ImageSets
       ls ../training/image_2/ | grep ".png" | sed s/.png// > trainval.txt
-      ```
+    ```
     ```Shell
       cd $ROOT/data/
       python random_split_train_val.py
-      ```
+    ```
 
     This will result in the following folder and file structure with the KITTI data:
 
@@ -58,7 +58,7 @@ Adaptations have been made on the training algorithm and network structures to e
                               |-> trainval.txt
                               |-> train.txt
                               L-> val.txt
-  ```
+    ```
 
 - The starting weights for training can be initialized with weights from the ImageNet SqueezeNet. These can be downloaded by running the following commmands:
 
@@ -85,7 +85,8 @@ Adaptations have been made on the training algorithm and network structures to e
       --checkpoint_step=200 \
       --checkpoint_dir=[optional/path/to/folder/containing/ckpt/file/to/continue] \
       --pruning=False
-      ```
+    ```
+
     This command will start a training of the specified network on the KITTI dataset. For the initial training the ImageNet weights can be used in combination with the original network net=squeezeDet+. For training on pruned networks(see next section) the pickle files of pruned network weights can be used with the corresponding network.
 
 ## Evaluation
@@ -100,7 +101,7 @@ Adaptations have been made on the training algorithm and network structures to e
       --data_path=[path/to/data/KITTI]\
       --net=[squeezeDet+| squeezeDet+PruneFilterShape| squeezeDet+PruneFilter| squeezeDet+PruneLayer] \
       --checkpoint_path=[/path/to/folder/containing/ckpt/]
-      ```
+    ```
 
     This will output the boxes and classes of the validation set.
 
@@ -112,7 +113,7 @@ Adaptations have been made on the training algorithm and network structures to e
       --eval_dir=[path/to/folder/where/eval/output/is/stored] \
       --pretrained_model_path=[path/to/pickle/file/with/weights] \
       --data_path=[path/to/data/KITTI]\
-      ```
+    ```
 
 
 ## Pruning
@@ -149,14 +150,21 @@ Adaptations have been made on the training algorithm and network structures to e
 
 To test the models on a Raspberry Pi, scripts to convert a trained and pruned model to the tflite format are included as well.
 
+- First run the script lite-saved-model.py with the appropiate paths in the script. This will create a tensorflow SavedModel of the network with the right inputs and outputs.
+
+- Then run the script lite-tflite-model.py with the appropiate paths in the script. This will convert the tensorflow SavedModel to a tflite model.
+
+To use a tflite model on a Raspberry Pi, the Raspberry Pi had Raspian Buster Lite as OS and had the following packages installed:
+
+- pillow 6.1.0
+- numpy 1.17.3
+- tflite_runtime 1.14.0
+
+This will be enough to run the tflite model on the Raspberry Pi.
 
 
+## Acceleration on GPU vs Raspberry Pi
 
-
-
-
-
-To use a tflite model on a Raspberry Pi, the Raspberry Pi
-
+![alt text](https://github.com/2ArounD/Pi-SqueezeDet/blob/master/results_3_iterations.eps)
 
 
