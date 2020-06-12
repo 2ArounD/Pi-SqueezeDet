@@ -165,6 +165,6 @@ This will be enough to run the tflite model on the Raspberry Pi.
 
 ## Acceleration on GPU vs Raspberry Pi
 
-![alt text](https://github.com/2ArounD/Pi-SqueezeDet/blob/master/results_3_iterations.eps)
+![alt text](https://github.com/2ArounD/Pi-SqueezeDet/blob/master/results_3_iterations.png)
 
 
