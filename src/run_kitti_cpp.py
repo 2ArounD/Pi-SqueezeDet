@@ -6,13 +6,12 @@ import pickle
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('eval_dir', 'path/to/checkpoint/1999', """Root directory of data""")
+tf.app.flags.DEFINE_string('eval_dir', 'path/to/boxes/and/detections')
 tf.app.flags.DEFINE_string('image_set', 'val',
-                           """Only used for VOC data."""
                            """Can be train, trainval, val, or test""")
-tf.app.flags.DEFINE_string('pretrained_model_path', '../SqueezeDetPrunedBN1.pkl',
+tf.app.flags.DEFINE_string('pretrained_model_path', '../path/to/pretrained/weights.pkl',
                             """Directory where to write event logs """)
-tf.app.flags.DEFINE_string('data_path', '../data/KITTI_2', """Root directory of data""")
+tf.app.flags.DEFINE_string('data_path', '../data/KITTI', """Root directory of data""")
 
 
 

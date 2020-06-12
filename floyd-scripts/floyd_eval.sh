@@ -10,7 +10,7 @@ floyd run \
 --env tensorflow-1.14 \
 --gpu \
 --max-runtime 600 \
-  "python3 ./combined/src/GPU_eval.py \
+  "python3 ./src/GPU_eval.py \
   --dataset=KITTI \
   --image_set=val\
   --eval_dir=$TRAIN_DIR \

@@ -5,7 +5,7 @@ This repository contains a tensorflow implementation of training and pruning Squ
 
 The repository is based on the original repository of squeezedet.
 
-@inproceedings{squeezedet,
+    @inproceedings{squeezedet,
         Author = {Bichen Wu and Forrest Iandola and Peter H. Jin and Kurt Keutzer},
         Title = {SqueezeDet: Unified, Small, Low Power Fully Convolutional Neural Networks for Real-Time Object Detection for Autonomous Driving},
         Journal = {arXiv:1612.01051},
@@ -24,11 +24,11 @@ Adaptations have been made on the training algorithm and network structures to e
   ```
 
 
-  - Use pip to install required Python packages:
+- Use pip to install required Python packages:
 
-    ```Shell
-    pip install -r requirements.txt
-    ```
+```Shell
+pip install -r requirements.txt
+```
 
 ## Data:
 
@@ -70,6 +70,47 @@ This will result in the following folder and file structure with the KITTI data:
   ```
 
 ## Training
+
+Training can be started with the following command:
+
+```Shell
+python3 ./src/train.py \
+  --pretrained_model_path=[path/to/pickle/file/with/weights] \
+  --data_path=[path/to/data/KITTI]\
+  --image_set=train \
+  --train_dir=[path/to/folder/where/training/output/is/stored] \
+  --max_steps=2000 \
+  --net=[squeezeDet+| squeezeDet+PruneFilterShape| squeezeDet+PruneFilter| squeezeDet+PruneLayer] \
+  --summary_step=100 \
+  --checkpoint_step=200 \
+  --checkpoint_dir=[optional/path/to/folder/containing/ckpt/file/to/continue] \
+  --pruning=False
+  ```
+This command will start a training of the specified network on the KITTI dataset. For the initial training the ImageNet weights can be used with net=squeezeDet+. For training on pruned networks(see next section) the pickle files of pruned network weights can be used with the corresponding network.
+
+## Evaluation
+
+For evaluation of the trained networks GPU_eval.py can be run with the following command:
+
+```Shell
+python3 ./src/GPU_eval.py \
+  --image_set=val\
+  --eval_dir=[path/to/folder/where/eval/output/will/be/stored] \
+  --pretrained_model_path=[path/to/pickle/file/with/weights] \
+  --data_path=[path/to/data/KITTI]\
+  --net=[squeezeDet+| squeezeDet+PruneFilterShape| squeezeDet+PruneFilter| squeezeDet+PruneLayer] \
+  --checkpoint_path=[/path/to/folder/containing/ckpt/]
+  ```
+
+  This will output the boxes and classes of the validation set. These files can be used with the official kitti evaluation script. This can be started by running run_kitti_cpp.py:
+
+```Shell
+
+  python3 ./src/run_kitti_cpp.py \
+  --eval_dir=[path/to/folder/where/eval/output/is/stored] \
+  --pretrained_model_path=[path/to/pickle/file/with/weights] \
+  --data_path=[path/to/data/KITTI]\
+  ```
 
 
 ## Pruning
