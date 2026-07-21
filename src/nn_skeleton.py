@@ -119,7 +119,7 @@ class ModelSkeleton:
   def _add_forward_graph(self):
     raise NotImplementedError
 
-  # Function to create interpertation graph
+  # Function to create interpretation graph
   def _add_interpretation_graph(self):
     mc = self.mc
 
